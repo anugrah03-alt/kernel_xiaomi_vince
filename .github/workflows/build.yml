@@ -1,4 +1,4 @@
-name: Build StormBreaker Vince A10 + KernelSU
+name: Build StormBreaker Vince A10 (KernelSU)
 
 on:
   workflow_dispatch:
@@ -7,14 +7,21 @@ jobs:
   build:
     runs-on: ubuntu-22.04
 
+    env:
+      ARCH: arm64
+      SUBARCH: arm64
+      DEFCONFIG: vince-stock_defconfig
+      KERNEL_DIR: kernel
+      CLANG_DIR: proton-clang
+
     steps:
       - name: Checkout kernel source
         uses: actions/checkout@v4
 
-      - name: Install dependencies
+      - name: Install build dependencies
         run: |
-          sudo apt update
-          sudo apt install -y \
+          sudo apt-get update
+          sudo apt-get install -y \
             bc bison flex libssl-dev libelf-dev \
             build-essential git curl zip \
             gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi \
@@ -22,30 +29,32 @@ jobs:
 
       - name: Clone Proton Clang
         run: |
-          git clone --depth=1 https://github.com/kdrag0n/proton-clang.git
+          git clone --depth=1 https://github.com/kdrag0n/proton-clang.git $CLANG_DIR
 
-      - name: Apply KernelSU
+      - name: Add KernelSU v0.9.5 (official)
         run: |
           curl -LSs https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh | bash -s v0.9.5
 
       - name: Build kernel
         run: |
-          export ARCH=arm64
-          export SUBARCH=arm64
+          export PATH=$GITHUB_WORKSPACE/$CLANG_DIR/bin:$PATH
           export CC=clang
-          export PATH=$PWD/proton-clang/bin:$PATH
-          export LLVM=1
-          export LLVM_IAS=1
-          export CROSS_COMPILE=aarch64-linux-gnu-
-          export CROSS_COMPILE_ARM32=arm-linux-gnueabi-
+          export LD=ld.lld
+          export AR=llvm-ar
+          export NM=llvm-nm
+          export OBJCOPY=llvm-objcopy
+          export OBJDUMP=llvm-objdump
+          export STRIP=llvm-strip
 
-          make clean
-          make mrproper
-          make vince_defconfig
-          make -j$(nproc)
+          make O=out ARCH=arm64 $DEFCONFIG
+          make -j$(nproc) O=out ARCH=arm64
 
-      - name: Upload kernel
+      - name: Upload kernel image
         uses: actions/upload-artifact@v4
         with:
-          name: vince-a10-kernelsu
-          path: arch/arm64/boot/*
+          name: kernel-vince
+          path: |
+            out/arch/arm64/boot/Image
+            out/arch/arm64/boot/Image.gz
+            out/arch/arm64/boot/dtb
+            out/arch/arm64/boot/dtbo.img
