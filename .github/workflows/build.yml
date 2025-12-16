@@ -1,4 +1,40 @@
-name: Build StormBreaker Vince with SukiSU Ultra
+   sudo apt update
+        sudo apt install -y \
+          bc bison flex libssl-dev libelf-dev \
+          build-essential git curl zip \
+          gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi \
+          clang lld llvm python3
+
+    - name: Clone Proton Clang
+      run: |
+        git clone https://github.com/kdrag0n/proton-clang.git --depth=1
+
+    - name: Add SukiSU Ultra
+      run: |
+        git clone https://github.com/KernelSU-Next/SukiSU-Ultra.git sukisu
+        bash sukisu/patch/kernel/setup.sh
+
+    - name: Build kernel
+      run: |
+        export ARCH=arm64
+        export SUBARCH=arm64
+        export CC=clang
+        export PATH=$PWD/proton-clang/bin:$PATH
+        export LLVM=1
+        export LLVM_IAS=1
+        export CROSS_COMPILE=aarch64-linux-gnu-
+        export CROSS_COMPILE_ARM32=arm-linux-gnueabi-
+
+        make clean
+        make mrproper
+        make vince_defconfig
+        make -j$(nproc)
+
+    - name: Upload kernel
+      uses: actions/upload-artifact@v4
+      with:
+        name: vince-a10-sukisu
+        path: arch/arm64/boot/*name: Build StormBreaker Vince with SukiSU Ultra
 
 on:
   workflow_dispatch:
