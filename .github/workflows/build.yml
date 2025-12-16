@@ -22,12 +22,12 @@ jobs:
 
       - name: Clone Proton Clang
         run: |
-          git clone https://github.com/kdrag0n/proton-clang.git --depth=1
+          git clone --depth=1 https://github.com/kdrag0n/proton-clang.git
 
-      - name: Add SukiSU Ultra
+      - name: Apply SukiSU Ultra kernel patch
         run: |
-          git clone https://github.com/KernelSU-Next/SukiSU-Ultra.git sukisu
-          bash sukisu/patch/kernel/setup.sh
+          git clone --depth=1 https://github.com/SukiSU-Ultra/SukiSU_KernelPatch_patch.git sukisu
+          bash sukisu/setup.sh
 
       - name: Build kernel
         run: |
