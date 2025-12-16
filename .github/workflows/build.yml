@@ -1,4 +1,4 @@
-name: Build StormBreaker Vince A10 (KernelSU)
+name: Build StormBreaker Vince A10 + KernelSU
 
 on:
   workflow_dispatch:
@@ -12,7 +12,7 @@ jobs:
       SUBARCH: arm64
       DEFCONFIG: vince-stock_defconfig
       KERNEL_DIR: kernel
-      CLANG_DIR: proton-clang
+      OUT_DIR: out
 
     steps:
       - name: Checkout kernel source
@@ -23,38 +23,38 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y \
             bc bison flex libssl-dev libelf-dev \
+            libncurses-dev rsync \
             build-essential git curl zip \
             gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi \
-            clang lld llvm python3
+            clang lld llvm python3 python-is-python3
 
       - name: Clone Proton Clang
         run: |
-          git clone --depth=1 https://github.com/kdrag0n/proton-clang.git $CLANG_DIR
+          git clone --depth=1 https://github.com/kdrag0n/proton-clang.git
 
       - name: Add KernelSU v0.9.5 (official)
         run: |
-          curl -LSs https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh | bash -s v0.9.5
+          curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh" | bash -s v0.9.5
+
+      - name: Setup build environment
+        run: |
+          export PATH=$PWD/proton-clang/bin:$PATH
+          mkdir -p $OUT_DIR
 
       - name: Build kernel
         run: |
-          export PATH=$GITHUB_WORKSPACE/$CLANG_DIR/bin:$PATH
-          export CC=clang
-          export LD=ld.lld
-          export AR=llvm-ar
-          export NM=llvm-nm
-          export OBJCOPY=llvm-objcopy
-          export OBJDUMP=llvm-objdump
-          export STRIP=llvm-strip
+          export PATH=$PWD/proton-clang/bin:$PATH
+          make O=$OUT_DIR ARCH=arm64 $DEFCONFIG
+          make -j$(nproc) O=$OUT_DIR ARCH=arm64 \
+            CC=clang
 
-          make O=out ARCH=arm64 $DEFCONFIG
-          make -j$(nproc) O=out ARCH=arm64
+      - name: Package kernel image
+        run: |
+          mkdir -p artifact
+          cp $OUT_DIR/arch/arm64/boot/Image artifact/
 
       - name: Upload kernel image
         uses: actions/upload-artifact@v4
         with:
-          name: kernel-vince
-          path: |
-            out/arch/arm64/boot/Image
-            out/arch/arm64/boot/Image.gz
-            out/arch/arm64/boot/dtb
-            out/arch/arm64/boot/dtbo.img
+          name: kernel-image
+          path: artifact/Image
