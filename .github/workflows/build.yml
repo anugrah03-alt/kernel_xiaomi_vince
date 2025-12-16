@@ -1,4 +1,4 @@
-name: Build StormBreaker Vince A10 + SukiSU Ultra
+name: Build StormBreaker Vince A10 + KernelSU
 
 on:
   workflow_dispatch:
@@ -24,10 +24,9 @@ jobs:
         run: |
           git clone --depth=1 https://github.com/kdrag0n/proton-clang.git
 
-      - name: Apply SukiSU Ultra kernel patch
+      - name: Apply KernelSU
         run: |
-          git clone --depth=1 https://github.com/SukiSU-Ultra/SukiSU_KernelPatch_patch.git sukisu
-          bash sukisu/setup.sh
+          curl -LSs https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh | bash -s v0.9.5
 
       - name: Build kernel
         run: |
@@ -48,5 +47,5 @@ jobs:
       - name: Upload kernel
         uses: actions/upload-artifact@v4
         with:
-          name: vince-a10-sukisu
+          name: vince-a10-kernelsu
           path: arch/arm64/boot/*
